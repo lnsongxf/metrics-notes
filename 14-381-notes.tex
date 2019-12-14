@@ -1,0 +1,953 @@
+\documentclass[11pt]{article}
+%\usepackage{../preamble}
+\usepackage{preamble}
+
+\title{14.381 Notes}
+\author{Rebekah Dix and Shinnosuke Kikuchi \thanks{Notes written during 14.381 Fall 2019 at MIT. Taught by Josh Angrist.}}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\listoftodos
+
+\newpage
+
+\section{RCT and Regression Recap}
+
+\subsection{Conditional Expectation Function}
+
+\begin{definition}[Conditional Expectation Function (CEF)]
+	The \defi{Conditional Expectation Function (CEF)} for a dependent variable $Y_i$ given a $K \times 1$ vector of covariates $X_i$ is the expectation (or \emph{population average}) of $Y_i$ with $X_i$ held fixed. It is written as $\ee{Y_i|X_i}$. For a specific value of $X_i = x$, we write $\ee{Y_i|X_i=x}$.
+	\begin{itemize}
+		\item For continuous $Y_i$ with conditional density $f_y(\cdot|X_i=x)$, the CEF is
+		\begin{equation}
+			\ee{Y_i|X_i=x} = \int t f_y(t|X_i=x) \ dt
+		\end{equation}
+		\item For discrete $Y_i$ with condition pmf $f_y(\cdot|X_i=x)$, the CEF is
+		\begin{equation}
+			\ee{Y_i|X_i=x} = \sum_{t} t f_y(t|X_i=x)
+		\end{equation}
+	\end{itemize}
+\end{definition}
+
+\begin{theorem}[Law of Iterated Expectations (LIE)]
+	\begin{equation}
+		\ee{Y_i} = \ee{\ee{Y_i|X_i}}
+	\end{equation}
+	In words: an unconditional expectation can be written as the population average of the CEF.
+\end{theorem}
+
+\begin{theorem}[CEF Decomposition Property]
+	We can write
+	\begin{equation}
+		Y_i = \ee{Y_i|X_i} + \e_i
+	\end{equation}
+	where
+	\begin{enumerate}
+		\item $\e_i$ is mean-independent of $X_i$ (that is, $\ee{e_i|X_i}=0$).
+		\item $\e_i$ is uncorrelated with any function of $X_i$ (and hence uncorrelated with the CEF, which is a function of $X_i$).
+	\end{enumerate}
+\end{theorem}
+
+\begin{interpretation}
+	This theorem says any random variable $Y_i$ can be decomposed into a piece that's explain by $X_i$ (the CEF) and a piece left over which is orthogonal (i.e., uncorrelated) with any function of $X_i$. 
+\end{interpretation}
+
+\begin{proof}
+	Write 
+	\begin{equation}
+		Y_i = \ee{Y_i|X_i} + \e_i
+	\end{equation}
+	We prove each item in turn:
+	\begin{enumerate}
+		\item $\ee{\e_i|X_i} = \ee{Y_i - \ee{Y_i|X_i} | X_i} = \ee{Y_i|X_i} - \ee{Y_i|X_i} = 0$. 
+		\begin{itemize}
+			\item Note also that
+			\begin{equation}
+				\ee{\e_i} = \ee{\ee{\e_i|X_i}} = 0
+			\end{equation}
+		\end{itemize}
+		\item Let $h$ be a function of $X_i$. Then
+		\begin{align*}
+			\ee{h(X_i)\e_i} &= \ee{\ee{h(X_i)\e}|X_i} \tag{LIE} \\
+			&= \ee{h(X_i)\ee{\e_i|X_i}} \\
+			&= 0
+		\end{align*}
+		Then
+		\begin{equation}
+			\cov{h(X_i),\e_i} = \ee{h(X_i)\e_i} - \ee{h(X_i)}\ee{\e_i} = 0
+		\end{equation}
+		since $\ee{\e_i} =  \ee{h(X_i)\e_i} = 0$.
+	\end{enumerate}
+\end{proof}
+
+\begin{theorem}[CEF solves the MMSE prediction problem]
+	Let $m(X_i)$ be any function of $X_i$. The CEF solves
+	\begin{equation}
+		\ee{Y_i|X_i} = \argmin_{m(X_i)} \ee{(Y_i-m(X_i))^2}
+	\end{equation}
+\end{theorem}
+
+\begin{proof}
+	Notice that
+	\begin{align*}
+		(Y_i-m(X_i))^2 &= (Y_i - \ee{Y_i|X_i} + \ee{Y_i|X_i} - m(X_i))^2 \\
+		&= (Y_i - \ee{Y_i|X_i})^2 + 2(Y_i - \ee{Y_i|X_i})(\ee{Y_i|X_i} - m(X_i)) + (\ee{Y_i|X_i} - m(X_i))^2
+	\end{align*}
+	Note that
+	\begin{equation}
+		(Y_i - \ee{Y_i|X_i})(\ee{Y_i|X_i} - m(X_i)) = \e_i (\ee{Y_i|X_i} - m(X_i)) = \e_i h(X_i)
+	\end{equation}
+	where $h$ is only a function of $X_i$ and $\e_i = Y_i - \ee{Y_i|X_i}$. We know that $\e_i$ is orthogonal with any function of $X_i$. Therefore $\ee{\e_i h(X_i)} = 0$.  Therefore to minimize, $(Y_i-m(X_i))^2$, we need to minimize $(\ee{Y_i|X_i} - m(X_i))^2$, so choose $m(X_i) = \ee{Y_i|X_i}$.
+\end{proof}
+
+\begin{interpretation}
+	The CEF is the best predictor of $Y_i$ given $X_i$ in that it solves the Minimum Mean Squared Error (MMSE) prediction problem. 
+\end{interpretation}
+
+\begin{theorem}[ANOVA]
+	The Analysis of Variance (ANOVA) Theorem states that
+	\begin{equation}
+		\var{Y_i} = \var{\ee{Y_i|X_i}} + \ee{\var{Y_i|X_i}} 
+	\end{equation}
+\end{theorem}
+
+\begin{proof}
+	By the CEF Decomposition Property, we have that
+	\begin{align*}
+		\var{Y_i} &= \var{\ee{Y_i|X_i} + \e_i} \\
+		&= \var{\ee{Y_i|X_i}} + \var{\e_i} \tag{$\e_i$ and $\ee{Y_i|X_i}$ uncorrelated}
+	\end{align*}
+	Then note that
+	\begin{align*}
+		\var{\e_i} &= \ee{\e_i^2} - \ee{\e_i}^2 \\
+		&= \ee{\e_i^2} \tag{$\e_i$ mean-zero} \\
+		&= \ee{\ee{\e_i^2|X_i}} \tag{LIE} 
+	\end{align*}
+	Now note that
+	\begin{align*}
+	   \ee{\e_i^2|X_i} 
+	   &=\ee{(Y_i - \ee{Y_i|X_i})^2 | X_i} \tag{$\e_i\equiv Y_i - \ee{Y_i|X_i}$}\\
+	   &=\ee{\var{Y_i|X_i}}
+	\end{align*}
+	Therefore 
+	\begin{equation}
+		\var{\e_i} = \ee{\ee{\e_i^2|X_i}} = \ee{\var{Y_i|X_i}}
+	\end{equation}
+	Putting these pieces together gives
+	\begin{equation}
+		\var{Y_i} = \var{\ee{Y_i|X_i}} + \ee{\var{Y_i|X_i}} 
+	\end{equation}	
+\end{proof}
+
+\subsection{Linear Regression and the CEF}
+
+Define the $K \times 1$ regression coefficient vector $\beta$ by solving
+\begin{equation}
+	\beta = \argmin_{b} \ee{(Y_i - X'_i b)^2}
+\end{equation}
+The FOC is
+\begin{equation}
+	\ee{X_i(Y_i - X'_i \beta)} = 0
+\end{equation}
+Therefore 
+\begin{equation}
+	\beta = \ee{X_i X_i'}^{-1} \ee{X_i Y_i}
+\end{equation}
+Define the \defi{population residual} to be
+\begin{equation}
+	e_i \equiv Y_i - X'_i \beta
+\end{equation}
+Then the population residual is uncorrelated with the regressors $X_i$ by the FOC
+\begin{equation}
+	\ee{X_i(Y_i - X'_i \beta)} = \ee{X_i e_i}= 0
+\end{equation}
+
+\paragraph{Bivariate Regression}
+
+Suppose there is only one regressor $x_i$ and a constant:
+\begin{equation}
+	Y_i = \alpha + \beta_1 x_i + e_i
+\end{equation}
+Then the (population) regression coefficients are given by
+\begin{align}
+	\beta_1 &= \frac{\cov{Y_i,x_i}}{\var{x_i}} \\
+	\alpha &= \ee{Y_i} - \beta_1 \ee{x_i}
+\end{align}
+
+\paragraph{Multivariate Regression}
+
+Suppose there are multiple non-constant regressors. The slope coefficient for the $k$-th regressor is given by
+\begin{equation}
+	\beta_k = \frac{\cov{Y_i,\tilde{x}_{ki}}}{\var{\tilde{x}_{ki}}}
+\end{equation}
+where $\tilde{x}_{ki}$ is the residual from a regression of $x_{ki}$ on all the other covariates.
+
+\begin{interpretation}
+	Each coefficient in a multivariate regression is the bivariate slope coefficient for the corresponding regressor, after partialling out all the other variables in the model.
+\end{interpretation}
+
+\subsection{Regression Justification}
+
+\begin{theorem}[The Linear CEF Theorem]
+	Suppose the CEF is linear. Then the population regression function is the CEF.
+\end{theorem}
+\begin{theorem}[]
+	Suppose the CEF is linear:
+	\begin{equation}
+		\ee{Y_i|X_i} = X'_i \beta^*
+	\end{equation}
+	where $\beta^*$ is a $K \times 1$ vector of coefficients. We know that 
+	\begin{equation}
+		\ee{X_i (Y_i - \ee{Y_i|X_i})} = 0
+	\end{equation}
+	by the CEF Decomposition Property. Then
+	\begin{align*}
+	 \beta^* &= \ee{X_i X_i'}^{-1} \ee{X_i Y_i} \tag{Linear Regression} \\
+	 &= \ee{X_i X_i'}^{-1} \ee{\ee{X_i Y_i|X_i}} \tag{LIE} \\
+	 &= \ee{X_i X_i'}^{-1} \ee{X_i \ee{Y_i|X_i}} \\
+	 &= \ee{X_i X_i'}^{-1} \ee{X_i X_i' \beta} \tag{CEF Linear} \\
+	 &= \beta
+	\end{align*}
+\end{theorem}
+
+\paragraph*{When is the CEF linear?}
+\begin{enumerate}
+	\item Joint Normality: The vector $(Y_i,X_i)$ has a multivariate normal distribution
+	\item \textbf{Regression model saturated}: that is, the saturated regression model has a separate parameter for every possible combination of values that the set of regressors can take on.
+\end{enumerate}
+
+\begin{theorem}[Best Linear Predictor Theorem]
+	The function $X_i' \beta$ where $\beta = \ee{X_i X_i'}^{-1} \ee{X_i Y_i}$ is the best linear predictor of $Y_i$ given $X_i$ in a MMSE sense.
+\end{theorem}
+
+\begin{interpretation}
+	The CEF $\ee{Y_i|X_i}$ is the best MMSE predictor of $Y_i$ given $X_i$ in the class of all functions of $X_i$. The population regression function is the best we can do in the class of linear functions.
+\end{interpretation}
+
+\begin{theorem}[The Regression-CEF Theorem]
+	The function $X'_i\beta$ provides the MMSE linear approximation to $\ee{Y_i|X_i}$. More precisely,
+	\begin{equation}
+		\beta = \argmin_{b} \ee{(\ee{Y_i|X_i} - X'_i b)^2}
+	\end{equation}
+\end{theorem}
+
+\begin{interpretation}
+	Even if the CEF is nonlinear, regression provides the best linear approximation to it.
+\end{interpretation}
+
+\begin{corollary}[]
+	Regression coefficients can be obtained by using $\ee{Y_i|X_i}$ as a dependent variable instead of $Y_i$ itself.
+\end{corollary}
+\begin{align*}
+	\beta &= \ee{X_i X_i'}^{-1} \ee{X_i Y_i} \tag{Linear Regression} \\
+	 &= \ee{X_i X_i'}^{-1} \ee{\ee{X_i Y_i|X_i}} \tag{LIE} \\
+	 &= \ee{X_i X_i'}^{-1} \ee{X_i \ee{Y_i|X_i}} \\
+\end{align*}
+
+\begin{remark}
+	Useful for grouped-data regression.
+\end{remark}
+
+\subsection{Fits and Residuals}
+
+Suppose $\alpha$ and $\beta_1,\ldots, \beta_k$ are the intercept and slope coefficients from a regression of $Y_i$ on $X_{1i},\ldots,X_{ki}$. The \defi{fitted values} from this regression are
+\begin{equation}
+\hat{Y}_{i}=\alpha+\sum_{k=1}^{K} \beta_{k} X_{k i}
+\end{equation}
+The \defi{residuals} are
+\begin{equation}
+e_{i}=Y_{i}-\hat{Y}_{i}=Y_{i}-\alpha-\sum_{k=1}^{K} \beta_{k} X_{k i}
+\end{equation}
+
+\paragraph*{Properties}
+
+Regression residuals
+\begin{enumerate}
+	\item Have expectation and sample mean $0$:
+	\begin{equation}
+		\ee{e_i} = \sum_{i=1}^n e_i = 0
+	\end{equation}
+	\item Are uncorrelated (in population \emph{and} sample) with \textbf{all regressors that made them} and with the \textbf{corresponding fitted values.} That is,
+	\begin{itemize}
+		\item $\ee{X_{ki} e_i} = \sum_{i=1}^n X_{ki}e_i = 0$
+		\item $\ee{\hat{Y}_i e_i} = \sum_{i=1}^n \hat{Y}_i e_i = 0$
+	\end{itemize}
+\end{enumerate}
+
+\begin{proof}
+	Look at FOCs of minimization problem. 
+	\improvement[inline]{Finish.}
+\end{proof}
+
+\subsection{Bivariate Regression with Dummy Regressor}
+
+Define
+\begin{itemize}
+	\item $\ee{Y_i | Z_i = 0} = \alpha$
+	\item $\ee{Y_i | Z_i = 1} - \ee{Y_i | Z_i = 0} = \alpha + \beta$ 
+	\begin{itemize}
+		\item Thus $\beta = \ee{Y_i | Z_i = 1} - \ee{Y_i | Z_i = 0}$
+	\end{itemize}
+\end{itemize}
+
+Then
+\begin{align*}
+	\ee{Y_i | Z_i} &= \ee{Y_i | Z_i = 0} + (\ee{Y_i | Z_i = 1} - \ee{Y_i | Z_i = 0})Z_i \\
+	&= \alpha + \beta Z_i
+\end{align*}
+Thus $\ee{Y_i | Z_i}$ is a linear function of $Z_i$, with slope $\beta$ and intercept $\alpha$. Hence regression fits this CEF perfectly. 
+
+\subsection{Asymptotic OLS Inference}
+
+\improvement[inline]{Finish this.}
+
+\subsection{Omitted Variables Bias}
+
+\subsubsection{Short: Bivariate, Long: Multivariate}
+
+\paragraph*{Long Regression}
+\begin{equation}
+Y_{i}=\alpha^{l}+\beta^{l} X_{1 i}+\gamma X_{2 i}+e_{i}^{l}
+\end{equation}
+
+\paragraph*{Short Regression}
+\begin{equation}
+Y_{i}=\alpha^{s}+\beta^{s} X_{1 i}+e_{i}^{s}
+\end{equation}
+
+\paragraph*{Omitted on Included}
+\begin{equation}
+	X_{2i} = \pi_{20} + \pi_{21} X_{1i} + e^{b}_i
+\end{equation}
+
+\paragraph*{OVB Formula}
+\begin{equation}
+\beta^{s}=\beta^{l}+\pi_{21} \gamma
+\end{equation}
+
+\begin{remark}
+	``Short equals long plus the effect of omitted times the regression of omitted on included.''
+\end{remark}
+
+\paragraph*{Derivation}
+
+\begin{align*}
+	\beta^s &= \frac{\cov{Y_i,X_{1i}}}{\var{X_{1i}}} \tag{regression coefficient in bivariate regression} \\
+	&= \frac{\cov{\alpha^{l}+\beta^{l} X_{1 i}+\gamma X_{2 i}+e_{i}^{l},X_{1i}}}{\var{X_{1i}}} \tag{subsititute long regression equation} \\
+	&= \beta^l + \gamma \frac{\cov{X_{2i}, X_{1i}}}{\var{X_{1i}}} + \frac{\cov{e^l_i, X_{1i}}}{\var{X_{1i}}} \\
+	&= \beta^l + \gamma \frac{\cov{X_{2i}, X_{1i}}}{\var{X_{1i}}} \tag{$e^l_i$ residual from a regression that includes $X_{1i}$ as a regressor $\imp$ uncorrelated} \\
+	&= \beta^{l}+\pi_{21} \gamma
+\end{align*}
+
+\subsubsection{Short, Long: Multivariate}
+
+\paragraph*{Long Regression}
+\begin{equation}
+Y_{i}=\alpha^{l}+\beta^{l} X_{1 i}+\gamma X_{2 i} + \delta^{l} X_{3 i} +e_{i}^{l}
+\end{equation}
+
+\paragraph*{Short Regression}
+\begin{equation}
+Y_{i}=\alpha^{s}+\beta^{s} X_{1 i}+  \delta^{s} X_{3 i}+  e_{i}^{s}
+\end{equation}
+
+\paragraph*{Omitted on Included}
+\begin{equation}
+	X_{2i} = \pi_{20} + \pi_{21} X_{1i} + \pi_{23} X_{3i}  + e^{b}_i
+\end{equation}
+
+\paragraph*{OVB Formula}
+\begin{equation}
+\beta^{s}=\beta^{l}+\pi_{21} \gamma
+\end{equation}
+
+\paragraph*{Derivation}
+
+\small
+\begin{align*}
+	\beta^{s} &= \frac{\cov{Y_i,\tilde{X}_{1i}}}{\var{\tilde{X}_{1i}}} \tag{regression anatomy: $\tilde{X}_{1i}$ residual of regression of $X_{1i}$ on $X_{3i}$} \\
+	&= \frac{\cov{\alpha^{l}+\beta^{l} X_{1 i}+\gamma X_{2 i} + \delta^{l} X_{3 i} +e_{i}^{l},\tilde{X}_{1i}}}{\var{\tilde{X}_{1i}}} \tag{substitute long regression equation} \\
+	&= \ubt{\frac{\cov{\alpha^{l},\tilde{X}_{1i}}}{\var{\tilde{X}_{1i}}}}{$=0$, constant} + 
+	\frac{\cov{\beta^{l} X_{1 i},\tilde{X}_{1i}}}{\var{\tilde{X}_{1i}}} + 
+	\frac{\cov{\gamma X_{2 i},\tilde{X}_{1i}}}{\var{\tilde{X}_{1i}}} + 
+	\ubt{\frac{\cov{\delta^{l} X_{3 i},\tilde{X}_{1i}}}{\var{\tilde{X}_{1i}}}}{$=0$, $\tilde{X}_{1i}$ residual, $X_{3i}$ regressor} + 
+	\ubt{\frac{\cov{e_{i}^{l},\tilde{X}_{1i}}}{\var{\tilde{X}_{1i}}}}{$=0$, $e^l_i$ residual, $\tilde{X}_{1i}$ made up of regressors} \\
+	&= \beta^l \frac{\cov{X_{1 i},\tilde{X}_{1i}}}{\var{\tilde{X}_{1i}}} + \gamma \frac{\cov{X_{2 i},\tilde{X}_{1i}}}{\var{\tilde{X}_{1i}}} \\
+	&= \beta^l + \pi_{21} \gamma \tag{$\cov{X_{1i},\tilde{X}_{1i}} = \var{\tilde{X}_{1i}}$, $\frac{\cov{X_{2 i},\tilde{X}_{1i}}}{\var{\tilde{X}_{1i}}}$ slope coefficient regression anatomy}
+\end{align*}
+
+
+\subsection{Bad Controls}
+
+\begin{itemize}
+	\item Variables measure before the treatment variable was determine are generally \emph{good controls}, because they can't be changed by the treatment. 
+	\item Control variables that are measured later may have been determined in part by the treatment -- they are outcomes. These variables are \emph{bad controls}. For example, consider the regression of wage on education and test scores as a proxy for ability. If the test score is SAT score, it can be thought as a part of outcomes from education. This should not be included to estimate return to education.
+\end{itemize}
+
+\subsection{Measurement Error}
+
+\subsubsection{Bivariate}
+
+We want to run the regression
+\begin{equation}
+	Y_i = \alpha + \beta S_i^* + e_i
+\end{equation}
+but rather than observing $S_i^*$ we observe
+\begin{equation}
+	S_i = S_i^* + m_i
+\end{equation}
+
+\paragraph*{Classical Measurement Error Assumptions.} Assume the errors average to zero and are uncorrelated with $S_i^*$ and $e_i$:
+\begin{enumerate}
+	\item $\ee{m_i} = 0$ 
+	\item $\cov{S^*_i,m_i} = \cov{e_i,m_i} = 0$
+\end{enumerate}
+
+The regression coefficient we want, $\beta$, is given by
+\begin{equation}
+	\beta = \frac{\cov{Y_i, S_i^*}}{\var{S_i^*}}
+\end{equation}
+
+Instead we calculate $\beta_b$ (the ``biased'' coefficient) as
+\begin{align*}
+	\beta_b &= \frac{\cov{Y_i, S_i}}{\var{S_i}} \\
+	&= \frac{\cov{\alpha + \beta S_i^* + e_i, S_i^* + m_i}}{\var{S_i}} \tag{subsitute regression equation and ME} \\
+	&= \beta \frac{\var{S_i^*}}{\var{S_i}}  \tag{$m_i$ is uncorrelated with either $S^*_i$ or $e_i$} \\
+	&= \beta \frac{\var{S_i^*}}{\var{S^*_i} + \var{m_i}}
+\end{align*}
+Note that
+\begin{equation}
+	r \equiv \frac{\var{S_i^*}}{\var{S^*_i} + \var{m_i}} \in [0,1]
+\end{equation}
+
+\begin{interpretation}
+	$r$ is the proportion of variation in $S_i$ that is unrelated to mistakes (measurement error) and is called the \defi{reliability} of $S_i$. The attenuation bias in $\beta_b$ is
+	\begin{equation}
+		\beta_b - \beta = -(1-r)\beta
+	\end{equation}
+	so the absolute value of $\beta_b$ is smaller than $\beta$, which we call \emph{attenuation bias}.
+\end{interpretation}
+
+\subsubsection{IV Eliminates Measurement Error in Bivariate Regression}
+
+Suppose we want to run the regression
+\begin{equation}
+	Y_i = \alpha + \beta S_i^* + e_i
+\end{equation}
+but rather than observing $S_i^*$ we observe
+\begin{equation}
+	S_i = S_i^* + m_i
+\end{equation}
+We also have an instrument $Z_i$ for $S_i$. In particular, we have that $\cov{e_i, Z_i} = 0$, which is \emph{exclusion restriction}.
+
+\paragraph*{Classical Measurement Error Assumptions.} Assume the errors average to zero and are uncorrelated with $S_i^*$, $e_i$, and $Z_i$. 
+\begin{enumerate}
+	\item $\ee{m_i} = 0$ 
+	\item $\cov{S^*_i,m_i} = \cov{e_i,m_i} = \cov{Z_i, m_i} = 0$
+\end{enumerate}
+
+The IV estimator for $\beta$ is
+\begin{align*}
+	\beta_{IV} &= \frac{\cov{Y_i, Z_i}}{\cov{S_i, Z_i}} \\
+	&= \frac{\cov{\alpha + \beta S_i^* + e_i, Z_i}}{\cov{S_i^* + m_i, Z_i}} \\
+	&= \frac{\beta \cov{S^*_i, Z_i} + \cov{e_i, Z_i}}{\cov{S^*_i, Z_i} + \cov{m_i, Z_i}} \\
+	&= \beta \tag{$\cov{Z_i, m_i} = 0$ by CME, $\cov{e_i,Z_i} = 0$ by exclusion}
+\end{align*}
+
+
+
+\subsubsection{Multivariate}
+
+We want to run the regression
+\begin{equation}
+	Y_i = \alpha + \beta S_i^* + \gamma X_i + e_i
+\end{equation}
+but rather than observing $S_i^*$ we observe
+\begin{equation}
+	S_i = S_i^* + m_i
+\end{equation}
+
+The regression coefficient we want, $\beta$, is given by
+\begin{equation}
+	\beta = \frac{\cov{Y_i, \tilde{S}_i^*}}{\var{\tilde{S}_i^*}}
+\end{equation}
+where 
+\begin{itemize}
+	\item $\tilde{S}_i^*$ is the residual from a regression of $S_i^*$ on $X_i$. 
+\end{itemize}
+
+The regression coefficient we calculate is
+\begin{equation}
+	\beta_b = \frac{\cov{Y_i, \tilde{S}_i}}{\var{\tilde{S}_i}}
+\end{equation}
+where 
+\begin{itemize}
+	\item $\tilde{S}_i$ is the residual from a regression of $S_i$ on $X_i$. 
+\end{itemize}
+
+\paragraph*{Classical Measurement Error Assumptions.} Assume the errors average to zero and are uncorrelated with $S_i^*$, $e_i$, and $X_i$:
+\begin{enumerate}
+	\item $\ee{m_i} = 0$ 
+	\item $\cov{S^*_i,m_i} = \cov{e_i,m_i} = \cov{X_i,m_i} = 0$
+\end{enumerate}
+
+The coefficient from a regression of $S_i$ on $X_i$ is the same as the coefficient from a regression of $S^*_i$ on $X_i$:
+\begin{equation}
+	\frac{\cov{S_i,X_i}}{\var{X_i}} = \frac{\cov{S_i^* + m_i, X_i}}{\var{X_i}} = \frac{\cov{S^*_i,X_i}}{\var{X_i}}
+\end{equation}
+Therefore
+\begin{equation}
+	\tilde{S}_i = \tilde{S}^*_i + m_i
+\end{equation}
+To see this, note that
+\begin{align*}
+	S^*_i &= \pi X_i + \tilde{S}^*_i \\
+	S_i &= \pi X_i + \tilde{S}_i \\
+	\imp \tilde{S}_i &= \tilde{S}^*_i + (S_i - S^*_i) \\
+	&= \tilde{S}^*_i + m_i
+\end{align*}
+where $\tilde{S}^*_i$ and $m_i$ are uncorrelated, since $\tilde{S}^*_i$ is the residual of a regression of $S^*_i$ on $X_i$, both of which are assumed to be uncorrelated with $m_i$.
+
+Thus
+\begin{equation}
+	\var{\tilde{S}_i} = \var{\tilde{S}^*_i} + \var{m_i}
+\end{equation}
+
+Therefore 
+\begin{align*}
+	\beta_b &= \frac{\cov{Y_i, \tilde{S}_i}}{\var{\tilde{S}_i}} \\
+	&= \frac{\cov{\alpha + \beta S_i^* + \gamma X_i + e_i, \tilde{S}_i}}{\var{\tilde{S}_i}} \\
+	&= \frac{\cov{S_i^*,\tilde{S}_i}}{\var{\tilde{S}_i}}  \beta \\
+	&= \frac{\var{\tilde{S}_i^*}}{\var{\tilde{S}^*_i} + \var{m_i}} \beta \\
+	&\equiv \tilde{r} \beta
+\end{align*}
+
+Note that $\var{\tilde{S}_i^*} \leq \var{S_i^*}$ since $\var{\tilde{S}_i^*}$ is the variance of a residual form a regression in which $S_i^*$ is the dependent variable. This implies that
+\begin{equation}
+	\tilde{r} = \frac{\var{\tilde{S}_i^*}}{\var{\tilde{S}^*_i} + \var{m_i}} \leq \frac{\var{S_i^*}}{\var{S^*_i} + \var{m_i}} = r
+\end{equation}
+
+\begin{interpretation}
+	Adding covariates to a model with mismeasured schooling aggravates attenuation bias in estimates of the returns to schooling. Covariates are correlated with accurately measured schooling while being unrelated to the measurement error. 
+\end{interpretation}
+
+
+\subsection{Limited dependent variables}
+
+\improvement[inline]{Finish}
+
+\section{Conditional Independence Assumptions}
+
+\begin{claim}[]
+	\begin{equation}
+		\cov{X,Y} = \ee{(X-\ee{X})Y}
+	\end{equation}
+\end{claim}
+
+\begin{interpretation}
+	You only need to difference \emph{one} of the random variables when calculating covariance. 
+\end{interpretation}
+
+
+\subsection{Matching meets regression}
+\paragraph*{Matching}
+Conditional on $X_i$, treatment $D_i$ is as good as randomly assigned
+\begin{equation}
+   \left\{\mathrm{Y}_{0 i}, \mathrm{Y}_{1 i}\right\} \perp \mathrm{D}_{i} | \mathrm{X}_{i}
+\end{equation}
+Then TOT(Treatment effect On Treated) is
+\begin{align*}
+    \delta_{TOT}
+    &\equiv \ee{Y_{1i}-Y_{0i}|D_i=1}\\
+    &=\ee{\ee{\mathrm{Y}_{1 i} | \mathrm{X}_{i}, \mathrm{D}_{i}=1}-\ee{\mathrm{Y}_{0 i} | \mathrm{X}_{i}, \mathrm{D}_{i}=1} | \mathrm{D}_{i}=1}\tag{by LIE on $X_i$}\\
+    &=\ee{\ee{\mathrm{Y}_{1 i} | \mathrm{X}_{i}, \mathrm{D}_{i}=1}-\ee{\mathrm{Y}_{0 i} | \mathrm{X}_{i}, \tcg{\mathrm{D}_{i}=0}} | \mathrm{D}_{i}=1}\tag{by CIA}\\
+    &=\ee{\delta_X|D_i=1}\tag{by def. of $\delta_X$} \\
+    &= \frac{\ee{\ind{D_i=1} \delta_X}}{\pp{D_i=1}} \tag{def of conditional expectation} \\
+    &= \frac{\ee{\ee{\ind{D_i=1} \delta_X | X_i}}}{\pp{D_i=1}} \tag{LIE on $X_i$} \\ 
+    &=\frac{\ee{P(D_i=1|X_i)\delta_X}}{\ee{D_i}} \tag{$D_i$ an indicator, $\delta_X$ constant}
+\end{align*}
+where 
+$$
+\delta_X\equiv\ee{\mathrm{Y}_{1i} | \mathrm{X}_{i}, \mathrm{D}_{i}=1}-\ee{\mathrm{Y}_{0i} | \mathrm{X}_{i}, \mathrm{D}_{i}=0}
+$$
+\begin{interpretation}
+This means $\delta_{TOT}$ is a \emph{treatment-probability (conditional probability of treatment) weighted average of $\delta_X$}, whose sample analogue is observable- sample mean between the treated and the control.
+\end{interpretation}
+
+\begin{remark}
+	To calculate the conditional expectation, we use
+	\begin{equation}
+		\mathrm{E}(X | H)=\frac{\mathrm{E}\left(1_{H} X\right)}{P(H)}=\int_{\chi} x \mathrm{d} P(x | H)
+	\end{equation}
+\end{remark}
+
+
+\paragraph*{Regression Meets Matching}
+
+Think of regression estimates parameter $\delta_R$ in
+$$
+\mathrm{Y}_{i}=\sum_{x} d_{i x} \beta_{x}+\delta_{R} \mathrm{D}_{i}+\varepsilon_{i}
+$$
+
+\improvement[inline]{Subtract mean from d tilde (CEF)?}
+Then
+\begin{align*}
+    \delta_{R} 
+    &=\frac{\operatorname{Cov}\left(\mathrm{Y}_{i}, \tilde{\mathrm{D}}_{i}\right)}{V\left(\tilde{\mathrm{D}}_{i}\right)}\\
+    &=\frac{E\left[\left(\mathrm{D}_{i}-E\left[\mathrm{D}_{i} | \mathrm{X}_{i}\right]\right) \mathrm{Y}_{i}\right]}{E\left[\left(\mathrm{D}_{i}-E\left[\mathrm{D}_{i} | \mathrm{X}_{i}\right]\right)^{2}\right]} \\ 
+    &=\frac{E\left\{\left(\mathrm{D}_{i}-E\left[\mathrm{D}_{i} | \mathrm{X}_{i}\right]\right) E\left[\mathrm{Y}_{i} | \mathrm{D}_{i}, \mathrm{X}_{i}\right]\right\}}{E\left[\left(\mathrm{D}_{i}-E\left[\mathrm{D}_{i} | \mathrm{X}_{i}\right]\right)^{2}\right]}\\
+    &=\frac{E\left[\sigma_{D}^{2}\left(\mathrm{X}_{i}\right) \delta_{X}\right]}{E\left[\sigma_{D}^{2}\left(\mathrm{X}_{i}\right)\right]}
+\end{align*}
+where $\sigma_{D}^{2}\equiv E\left[\left(\mathrm{D}_{i}-E\left[\mathrm{D}_{i} | \mathrm{X}_{i}\right]\right)^{2}|X_i\right]$ is the conditional variance of $D_i$ on $X_i$.
+\begin{interpretation}
+This means $\delta_{R}$ is a \emph{conditional-variance weighted (condition variance of treatment) average of $\delta_X$}, whose sample analogue is observable- sample mean between the treated and the control. In particular, 
+$$
+\sigma_{D}^{2}=P(D_i=1|X_i)[1-P(D_i=1|X_i)]
+$$
+\emph{Regression is a matchmaker!}
+\end{interpretation}
+
+
+\subsection{Propensity Score}
+\paragraph*{Propensity-Score Theorem}
+Remember
+\begin{equation}
+    \delta_{TOT}=\ee{\delta_X|D_i=1}
+\end{equation}
+What if $X_i$ is many/multi continuous? Then, cell specific $\delta_X$ does not make sense, which requires grouping or parametric assumptions.
+
+\begin{theorem}[Propensity-Score Theorem]
+	Suppose the CIA holds for $Y_{ji}$. That is $\set{Y_{0i}, Y_{1i}} \perp D_i | X_i$. Then $\set{Y_{0i}, Y_{1i}} \perp D_i | p(X_i)$.
+\end{theorem}
+
+\begin{interpretation}
+	The Propensity-Score Theorem says you only need to control for covariates that affect the \emph{probability of treatment}. Alternatively, the only covariate you need to control for is the probability of treatment itself. 
+\end{interpretation}
+
+\begin{align*}
+	\ee{\frac{Y_i D_i}{p(X_i)}} &= \ee{\frac{(Y_{0i} + (Y_{1i} - Y_{0i})D_i) D_i}{p(X_i)}} \\
+	&= \ee{\frac{Y_{1i}D_i}{p(X_i)}} \\ 
+	&= \ee{\ee{\frac{Y_{1i}D_i}{p(X_i)} \vert X_i}} \\
+	&= \ee{Y_{1i}}
+\end{align*}
+
+\section{Instrument Variables}
+
+% \subsection{Constant Effects}
+
+\subsection{Wald Estimator}
+
+\paragraph*{Setup.} Use binary instrument $Z_i$ to estimate model with one endogenous regressor and no covariates. 
+
+\paragraph{Causal Regression Model.}
+\begin{equation}
+	Y_{i}=\rho s_{i}+\eta_{i}
+\end{equation}
+If $S_i$ is an endogenous regressor, then $\eta_i$ and $S_i$ may be correlated. Suppose $Z_i$ is a binary instrument that equals 1 with probability $p$. 
+
+\begin{claim}[Wald Estimator]
+	In the causal regression model above, we have that
+	\begin{equation}
+		\rho = \frac{\ee{Y_i | Z_i = 1} - \ee{Y_i | Z_i = 0}}{\ee{S_i | Z_i = 1} - \ee{S_i | Z_i = 0}}
+	\end{equation}
+\end{claim}
+
+We drop the $i$ subscripts and using lowercase for ease of notation.
+\begin{proof}[Proof by direct calculation]
+	We have that
+	\begin{align*}
+		\cov{y,z} &= \ee{yz} - \ee{y}\ee{z} \\
+		&= p\ee{y z | z = 1} + (1-p)\ee{y z | z = 0} - p(p \ee{y | z = 1} + (1-p)\ee{y | z = 0}) \tag{law of total expectation} \\
+		&= p \ee{y_1} - p^2 \ee{y_1} + p(1-p)\ee{y_0} \\
+		&= p(1-p)\parens{\ee{y_1} - \ee{y_0}}
+	\end{align*}
+	Similarly
+	\begin{align*}
+		\cov{s,z} &= p(1-p)\parens{\ee{s_1} - \ee{s_0}}
+	\end{align*}
+	Then
+	\begin{align*}
+		\cov{y,z} &= \cov{\rho s + \eta, z} \\
+		&= \rho \cov{s, z}
+	\end{align*}
+	Therefore
+	\begin{equation}
+		\rho = \frac{\cov{y,z}}{\cov{s, z}} = \frac{\ee{y_1}-\ee{y_0}}{\ee{s_1}-\ee{s_0}}
+	\end{equation}
+	
+	
+\end{proof}
+
+
+\begin{proof}[Proof using exclusion restriction]
+	The exclusion restriction gives us that
+	\begin{equation}
+		\ee{\eta | z = 0}
+	\end{equation}
+	Therefore
+	\begin{align*}
+		\ee{y|z} &= \rho \ee{s|z} + \ee{\eta|z} \\
+		&= \rho \ee{s|z}
+	\end{align*}
+	So that we obtain the same $\rho$ as above.
+
+	\unsure[inline]{Does this proof work with an intercept?}
+\end{proof}
+
+\subsection{2SLS}
+
+\begin{align*}
+	S_i &= X'_i \pi_{10} + \pi_{11}Z_i + \xi_{1i} \tag{First-Stage}\\
+	Y_i &= X'_i \pi_{20} + \pi_{21}Z_i + \xi_{2i} \tag{Reduced Form}
+\end{align*}
+\begin{equation}
+	Y_i = \alpha'X_i + \rho S_i + \eta_i \tag{Causal Relation of Interest (ILS)}
+\end{equation}
+
+Substitute the \emph{first stage} into the \emph{causal relation of interest} to get
+\begin{align*}
+	Y_i &= \alpha'X_i + \rho \parens{X'_i \pi_{10} + \pi_{11}Z_i + \xi_{1i}} + \eta_i \\
+	&= X'_i\parens{\alpha + \rho \pi_{10}} + \rho \pi_{11} Z_i + \parens{\rho \x_{1i} + \eta_i} \\
+	&= X'_i \pi_{20} + \pi_{21} Z_i + \xi_{2i}
+\end{align*}
+
+\paragraph*{First Stage:}
+\begin{align*}
+	S_{i} &=X_{i}^{\prime} \pi_{10}+\pi_{11}^{\prime} Z_{i}+\xi_{1 i}  \\
+	\hat{S}_i &= X_i' \hat{\pi}_{10} + \hat{\pi}'_{11} Z_i \tag{OLS fitted values}
+\end{align*}
+
+\paragraph*{Second Stage:}
+The coefficient on $\hat{S}_i$ in the regression of $Y_i$ on $X_i$ and $\hat{S}_i$ is th 2SLS estimator of $\rho$. 
+\begin{equation}
+	Y_{i} =\alpha^{\prime} X_{i}+\rho \hat{S}_{i}+\left[\eta_{i}+\rho\left(S_{i}-\hat{S}_{i}\right)\right] 
+\end{equation}
+The estimator for $\rho$ is consistent since
+\begin{itemize}
+	\item The first-stage are consistent (OLS).
+	\item The covariates $X_i$ and instruments $Z_i$ are uncorrelated with $\eta_i$ and $S_i - \hat{S}_i$ (by properties of regression residuals: regression residuals are uncorrelated with the regressors that made them). 
+\end{itemize}
+
+\begin{theorem}[]
+	2SLS is the same as IV, where the instrument is $\hat{S}^*_i$ (the residual from a regression of $\hat{S}_i$ on $X_i$). 
+\end{theorem}
+\begin{proof}
+	The IV estimator of $\rho$ is
+	\begin{equation}
+		\rho_{IV} = \frac{\cov{Y_i, \hat{S}^*_i}}{\cov{S_i, \hat{S}^*_i}}
+	\end{equation}
+\end{proof}
+We can simplify the denominator as
+\begin{align*}
+	\cov{S_i, \hat{S}^*_i} &= \cov{\hat{S}_i + \xi_{1i}, \hat{S}^*_i} \tag{$S_i = \hat{S}_i + \xi_{1i}$}\\
+	&= \cov{X'_i \pi^* + \hat{S}^*_i + \xi_{1i}, \hat{S}^*_i} \tag{$\hat{S}_i = X'_i \pi^* + \hat{S}^*_i$}\\
+	&= \ub{\cov{X'_i \pi^*,  \hat{S}^*_i}}{= 0} + \cov{ \hat{S}^*_i,  \hat{S}^*_i} + \ub{\cov{\xi_{1i},  \hat{S}^*_i}}{=0} \\
+	&= \var{ \hat{S}^*_i }
+\end{align*}
+Therefore
+\begin{align*}
+	\rho_{IV} &= \frac{\cov{Y_i, \hat{S}^*_i}}{\cov{S_i, \hat{S}^*_i}} \\
+	&= \frac{\cov{Y_i, \hat{S}^*_i}}{\var{ \hat{S}^*_i }} \\
+	&= \rho_{2SLS}
+\end{align*}
+because $\rho_{2SLS}$ is the regression coefficient of $\hat{S}_i$ in a regression of $Y_i$ on $\hat{S}_i$:
+\begin{equation}
+	Y_i = \alpha'X_i + \rho \hat{S}_i + \eta_i
+\end{equation}
+
+\begin{theorem}[]
+	One-instrument 2SLS equals IV, where the instrument is $\tilde{Z_i}$ (the residual from a regression of $Z_i$ on the covariates $X_i$).
+\end{theorem}
+\begin{proof}
+	We have that
+	\begin{equation}
+		S_i = X'_i \pi_{10} + \pi_{11}Z_i + \xi_{1i} \tag{First-Stage}\\
+	\end{equation}
+	By regression anatomy (Frisch-Waugh), we can estimate $\pi_{11}$ by regression $S_i$ with $X_i$ partialled out (that is, $\hat{S}^*_i$) on $Z_i$ with the $X_i$ partialled out (that is, $\tilde{Z_i}$). This gives that
+	\begin{equation}
+		\hat{S}^*_i = \tilde{Z_i} \hat{\pi}_{11}
+	\end{equation}
+\end{proof}
+
+\subsection{Grouped Data and 2SLS}
+
+\begin{enumerate}
+	\item 2SLS using dummy instruments is the same thing as GLS on a set of group means.
+	\item GLS in turn can be understood as a linear combination of all the Wald estimators that can be constructed from pairs of means.
+\end{enumerate}
+
+\subsection{Heterogeneous Effects}
+
+\begin{theorem}[LATE Theorem]\label{thm:late}
+	Suppose, for all $i$, 
+	\begin{enumerate}
+		\item Independence: $\set{Y_i(D_{1i}, 1), Y_i(D_{0i}, 0), D_{1i}, D_{0i}} \perp Z_i$
+		\item Exclusion: $Y_i(d,0) = Y_i(d,1) \equiv Y_{di}$ for $d=0,1$
+		\item First-Stage: $\ee{D_{1i} - D_{0i}} \neq 0$
+		\item Monotonicity: $D_{1i} - D_{0i} \geq 0$ or vice versa
+	\end{enumerate}
+	Then
+	\begin{equation}
+		\frac{\ee{Y_i | Z_i = 1} - \ee{Y_i | Z_i = 0}}{\ee{D_i | Z_i = 1} - \ee{D_i | Z_i = 0}} = \ee{Y_{1i} - Y_{0i} | D_{1i} > D_{0i}} = \ee{\rho_i | \pi_{1i} > 0}
+	\end{equation}
+\end{theorem}
+
+\begin{proof}
+
+\textbf{Step 1: Write $Y_i$ in terms of potential outcomes.} The Exclusion Restriction allows us to define potential outcomes indexed against treatment status using the single-index notation $(Y_{1i}, Y_{0i})$. We have that
+\begin{align*}
+	Y_{1i} &\equiv Y_i (1,1) = Y_i(1,0) \\
+	Y_{0i} &\equiv Y_i (0,1) = Y_i(0,0)
+\end{align*}
+Therefore $Y_i$ can be written in terms of potential outcomes by
+\begin{align*}
+	Y_i &= Y_i(0, Z_i) + (Y_i(1,Z_i) - Y_i(0,Z_i))D_i \\
+	&= Y_{0i} + (Y_{1i} - Y_{0i}) D_i
+\end{align*}
+
+\textbf{Step 2: Use this equation for $Y_i$, $D_i$ to rewrite the Wald estimator.}
+
+We can simplify
+\begin{align*}
+	\ee{Y_i | Z_i = 1} &= \ee{Y_{0i} + (Y_{1i} - Y_{0i})D_i | Z_i = 1} \tag{Exclusion Restriction} \\
+	&= \ee{Y_{0i} + (Y_{1i} - Y_{0i})D_{1i} | Z_i = 1} \\
+	&= \ee{Y_{0i} + (Y_{1i} - Y_{0i})D_{1i}} \tag{Independence} \\
+	\ee{Y_i | Z_i = 0} &= \ee{Y_{0i} + (Y_{1i} - Y_{0i})D_{0i}}
+\end{align*}
+
+Therefore
+\begin{align*}
+	\ee{Y_i | Z_i = 1} - \ee{Y_i | Z_i = 0} &= \ee{Y_{0i} + (Y_{1i} - Y_{0i})D_{1i}} - \ee{Y_{0i} + (Y_{1i} - Y_{0i})D_{0i}} \\
+	&= \ee{(Y_{1i} - Y_{0i})(D_{1i} - D_{0i})}
+\end{align*}
+
+By monotonicity, we have that $D_{1i} - D_{0i}$ equals $1$ (that is $D_{1i} > D_{0i}$) or equals 0 (that is, $D_{1i} = D_{0i}$). Therefore, by the law of total expectation,
+\begin{equation}
+	\ee{(Y_{1i} - Y_{0i})(D_{1i} - D_{0i})} = \ee{Y_{1i} - Y_{0i} | D_{1i} > D_{0i}} \pp{D_{1i} > D_{0i}} 	
+\end{equation} 
+
+\textbf{Step 3: Use independence to simplify the Wald denominator.}
+
+\begin{align*}
+	\ee{D_i | Z_i = 1} - \ee{D_i | Z_i = 0} 
+	&= \ee{D_{1i} | Z_{i} = 1} - \ee{D_{0i} | Z_i = 0} \\
+	&= \ee{D_{1i} - D_{0i}} \tag{Independence} \\
+	&= \pp{D_{1i} > D_{0i}} \tag{$D_{1i} - D_{0i}$ either 1 or 0 by monotonicity}
+\end{align*}
+
+\textbf{Step 4: Combine the Pieces.}
+
+\begin{align*}
+	\frac{\ee{Y_i | Z_i = 1} - \ee{Y_i | Z_i = 0}}{\ee{D_i | Z_i = 1} - \ee{D_i | Z_i = 0}} &=  \frac{\ee{Y_{1i} - Y_{0i} | D_{1i} > D_{0i}} \pp{D_{1i} > D_{0i}}}{\pp{D_{1i} > D_{0i}}}\\
+	&=\ee{Y_{1i} - Y_{0i} | D_{1i} > D_{0i}} \\
+	&= \ee{\rho_i | \pi_{1i} > 0}
+\end{align*}
+
+\end{proof}
+
+\begin{interpretation}
+	An instrument which is
+	\begin{enumerate}
+		\item As good as randomly assigned
+		\item Affects the outcome through a single known channel
+		\item Has a first-stage
+		\item Affects the causal channel of interest in only one direction
+	\end{enumerate}
+	can be used to estimate the average causal effect on the affected group. 
+\end{interpretation}
+
+
+\subsubsection{Failures of Monotonicity}
+
+When the monotonicity assumption fails, the instrument pushes some people into treatment while pushing others out of treatment. Those who are pushed out of treatment are called \defi{defiers}. Now, without monotonicity, $D_{1i} - D_{0i} \in \set{1,0,-1}$. 
+
+Therefore, by the law of total expectation,
+\begin{align*}
+	\ee{(Y_{1i} - Y_{0i})(D_{1i} - D_{0i})} &=  \ee{(Y_{1i} - Y_{0i}) | D_{1i} > D_{0i}} \pp{D_{1i} > D_{0i}} +\ee{(Y_{1i} - Y_{0i}) \times -1 | D_{1i} < D_{0i}} \pp{D_{1i} < D_{0i}} \\
+	&= \ee{Y_{1i} - Y_{0i}| D_{1i} > D_{0i}} \pp{D_{1i} > D_{0i}} - \ee{Y_{1i} - Y_{0i} | D_{1i} < D_{0i}} \pp{D_{1i} < D_{0i}}
+\end{align*}
+
+Thus, it could be that the treatment effects are positive for everyone, but the reduced form is zero because the effects on compliers are canceled out by the effects on the defiers. 
+
+\subsubsection{IV in Randomized Trials}
+
+\begin{theorem}[Bloom Result: IV estimates the effect of the treatment on the treated in a randomized trial with one-sided non-compliance]
+	Suppose the assumption of the LATE Theorem (\ref{thm:late}) hold and $\ee{D_i | Z_i = 0} = 0$ (that is, there is one-sided non-compliance). Then
+	\begin{align*}
+		\frac{\ee{Y_i | Z_i = 1} - \ee{Y_i | Z_i = 0}}{\ee{D_i | Z_i = 1} - \ee{D_i | Z_i = 0}} 
+		&= \frac{\ee{Y_i | Z_i = 1} - \ee{Y_i | Z_i = 0}}{\ee{D_i | Z_i = 1}} \\
+		&= \frac{\text{ITT Effect}}{\text{Compliance Rate}}\\
+		&= \ee{Y_{1i} - Y_{0i} | D_i = 1}
+	\end{align*}
+\end{theorem}
+
+\begin{proof}
+	As in the proof of the LATE theorem (with the additional simplification given by one-sided non-compliance)
+	\begin{align*}
+		\ee{Y_i | Z_i = 1} &= \ee{Y_{0i} + (Y_{1i} - Y_{0i})D_i | Z_i = 1} \\
+		\ee{Y_i | Z_i = 0} &= \ee{Y_{0i} + (Y_{1i} - Y_{0i})D_i | Z_i = 0} \\
+		&= \ee{Y_{0i} | Z_i = 0} \tag{since $\ee{D_i | Z_i = 0} = 0$}
+	\end{align*}
+	Then
+	\begin{align*}
+		\ee{Y_i | Z_i = 1} - \ee{Y_i | Z_i = 0} &= \ee{Y_{0i} + (Y_{1i} - Y_{0i})D_i | Z_i = 1} - \ee{Y_{0i} | Z_i = 0} \\
+		&= \ee{Y_{0i} + (Y_{1i} - Y_{0i})D_i | Z_i = 1} - \ee{Y_{0i} | Z_i = 1} \tag{Independence} \\
+		&= \ee{(Y_{1i} - Y_{0i})D_i | Z_i = 1} \\
+		&= \ee{(Y_{1i} - Y_{0i})D_i | D_i = 1, Z_i = 1} \pp{D_i = 1 | Z_i = 1} \\
+		&= \ee{Y_{1i} - Y_{0i} | D_i = 1}
+	\end{align*}
+	since $\ee{D_i | Z_i = 0} = 0$ means $D_i = 1$ implies $Z_i = 1$.  
+	
+\end{proof}
+
+\subsection{2SLS Mistakes}
+
+\subsubsection{Manual 2SLS}
+
+Manual 2SLS proceeds as
+\begin{enumerate}
+	\item Estimate the first stage by OLS
+	\item Plug the fitted values into the second stage equation, and estimate by OLS
+\end{enumerate}
+\begin{equation}
+	\begin{aligned} S_{i} &=X_{i}^{\prime} \pi_{10}+\pi_{11}^{\prime} Z_{i}+\xi_{1 i} \\ 
+	Y_{i} &=\alpha^{\prime} X_{i}+\rho \hat{s}_{i}+\left[\eta_{i}+\rho\left(S_{i}-\hat{S}_{i}\right)\right] 
+	\end{aligned}
+\end{equation}
+where
+\begin{enumerate}
+	\item $X_i$ is a set of covariates.
+	\item $Z_i$ is a set of excluded instruments.
+	\item The first stage fitted values are $\hat{S}_i = X_i' \hat{\pi}_{10} + \hat{\pi}'_{11} Z_i$.  
+\end{enumerate}
+
+The OLS residual variance is the variance of $\eta_i + \rho(S_i - \hat{S}_i)$. The proper 2SLS standard errors include the variance of $\eta_i$ only. 
+
+\subsubsection{Covariate Ambivalence}
+
+\subsubsection{Forbidden Regressions}
+
+
+\section{Regression Discontinuity Designs}
+
+\subsection{Sharp RD}
+
+Sharp RD is used when treatment status is a \emph{deterministic and discontinuous} function of a covariate $x_i$, called the \emph{running variable}. For example, $D_i = \ind{x_i \geq x_0}$. 
+
+\begin{model}[RD: Potential Outcomes with Linear, Constant-Effects]
+
+\end{model}
+
+No OVB
+
+\subsection{Fuzzy RD is IV}
+
+Fuzzy RD exploits discontinuities in the probability or expected value of treatment conditional on a covariate. Then, the discontinuity becomes an instrumental variable for treatment status instead of deterministically switching treatment on or off. 
+
+\section{Inference}
+
+\section{Machine Labor}
+
+
+\end{document}
